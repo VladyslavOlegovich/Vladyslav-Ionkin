@@ -1,0 +1,21 @@
+// Recursive approach:
+// Calculates the sum by recursively adding the current number to the sum of the previous numbers.
+const sum_to_n_a = function (n) {
+  if (n <= 1) {
+    return n;
+  }
+  return n + sum_to_n_a(n - 1);
+};
+
+// Array and reduce approach:
+// Creates an array of numbers from 1 to n, then uses reduce to sum them up.
+const sum_to_n_b = function (n) {
+  const arrOfNums = Array.from({ length: n }, (_, i) => i + 1);
+  return arrOfNums.reduce((a, b) => a + b);
+};
+
+// Mathematical formula approach:
+// Uses the arithmetic series sum formula to calculate the sum directly.
+const sum_to_n_c = function (n) {
+  return (n * (n + 1)) / 2;
+};

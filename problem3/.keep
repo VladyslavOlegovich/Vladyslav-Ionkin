@@ -1,0 +1,113 @@
+// 1.Interface:
+//
+// Added blockchain Field to WalletBalance Interface.
+// In the original code, the getPriority function relied on an undefined blockchain property of WalletBalance.
+// We added the blockchain field to the WalletBalance interface to ensure type safety and clarity,
+// explicitly defining that each balance object must include a blockchain type.
+
+// 2.Enum:
+//
+// Added enum for Blockchain Priorities
+// The original code used hardcoded priority values within a switch statement.
+// By introducing the BlockchainPriority enum, we encapsulate these values within a type-safe structure.
+// This approach reduces the risk of errors from hardcoding and makes it easier to manage or update the priority values in the future.
+
+// 3.Updated getPriority Function to use enum.
+
+// 4.Updated Type Definition for blockchain Parameter from any to string.
+
+// 5.Combined Filtering and Mapping in useMemo:
+
+// The filtering and mapping operations were combined into a single useMemo hook.
+// Previously, the code performed filtering, then a separate mapping operation, and finally sorting.
+// Combining these steps into a single useMemo call makes the code more efficient and reduces redundant operations.
+// This approach also minimizes the number of times the balances array is iterated over, enhancing performance.
+
+// 6.Fixed Logic in filter Method:
+// The filter method now correctly checks if the balancePriority is greater than -99 and balance.amount is greater than 0.
+// This ensures that only relevant balances are included.
+
+// 7.Combined Formatting and Sorting:
+// The formatting of balance amounts was incorporated into the useMemo hook, alongside the filtering and sorting.
+// By combining formatting with filtering and sorting, the code becomes more efficient and avoids redundant operations.
+// This approach ensures that the balances are formatted correctly before sorting.
+
+// 8.Updated Key for WalletRow:
+// The key for each WalletRow is now a combination of currency and blockchain.
+// This change prevents potential issues with React's reconciliation process and ensures better performance during rendering.
+
+interface WalletBalance {
+  currency: string;
+  amount: number;
+  blockchain: string;
+}
+interface FormattedWalletBalance extends WalletBalance {
+  formatted: string;
+}
+
+enum BlockchainPriority {
+  Osmosis = 100,
+  Ethereum = 50,
+  Arbitrum = 30,
+  Zilliqa = 20,
+  Neo = 20,
+  Default = -99,
+}
+
+interface Props extends BoxProps {}
+
+const WalletPage: React.FC<Props> = (props: Props) => {
+  const { children, ...rest } = props;
+  const balances = useWalletBalances();
+  const prices = usePrices();
+
+  const getPriority = (blockchain: string): number => {
+    switch (blockchain) {
+      case "Osmosis":
+        return BlockchainPriority.Osmosis;
+      case "Ethereum":
+        return BlockchainPriority.Ethereum;
+      case "Arbitrum":
+        return BlockchainPriority.Arbitrum;
+      case "Zilliqa":
+        return BlockchainPriority.Zilliqa;
+      case "Neo":
+        return BlockchainPriority.Neo;
+      default:
+        return BlockchainPriority.Default;
+    }
+  };
+
+  const formattedAndSortedBalances = useMemo(() => {
+    return balances
+      .filter((balance: WalletBalance) => {
+        const balancePriority = getPriority(balance.blockchain);
+        return balancePriority > -99 && balance.amount > 0;
+      })
+      .map((balance: WalletBalance) => ({
+        ...balance,
+        formatted: balance.amount.toFixed(),
+      }))
+      .sort(
+        (lhs: FormattedWalletBalance, rhs: FormattedWalletBalance) =>
+          getPriority(lhs.blockchain) - getPriority(rhs.blockchain)
+      );
+  }, [balances]);
+
+  const rows = formattedAndSortedBalances.map(
+    (balance: FormattedWalletBalance) => {
+      const usdValue = prices[balance.currency] * balance.amount;
+      return (
+        <WalletRow
+          className={classes.row}
+          key={`${balance.currency}-${balance.blockchain}`}
+          amount={balance.amount}
+          usdValue={usdValue}
+          formattedAmount={balance.formatted}
+        />
+      );
+    }
+  );
+
+  return <div {...rest}>{rows}</div>;
+};
